@@ -1,5 +1,15 @@
 # WorkShopOS — System Architecture
 
+## Progress checklist
+
+- [x] Modular monolith architecture is documented and reflected in the repository structure.
+- [x] Technology stack and layer boundaries are defined.
+- [x] Identity and tenant foundation is implemented and aligned with the architecture.
+- [x] Auth and DB foundation files exist and match the intended architecture.
+- [x] Full server-side tenant-context enforcement across modules is implemented at the shared service boundary and enforced before tenant-aware business logic executes.
+- [ ] Full RBAC enforcement across modules remains pending.
+- [ ] Business module implementation for repair orders, workflow, finance, and inspections remains pending.
+
 **Document:** `ARCHITECTURE.md`
 **Product:** WorkShopOS
 **Version:** 1.0
@@ -174,14 +184,14 @@ GitHub Actions
 
 WorkShopOS does not initially require:
 
-* Kubernetes
-* Docker
-* Redis
-* Kafka
-* Elasticsearch
-* GraphQL
-* microservices
-* dedicated backend servers
+- Kubernetes
+- Docker
+- Redis
+- Kafka
+- Elasticsearch
+- GraphQL
+- microservices
+- dedicated backend servers
 
 The initial system should optimise for:
 
@@ -257,17 +267,17 @@ Infrastructure
 
 Responsible for:
 
-* pages
-* layouts
-* forms
-* tables
-* dashboards
-* cards
-* dialogs
-* mobile interfaces
-* loading states
-* error states
-* empty states
+- pages
+- layouts
+- forms
+- tables
+- dashboards
+- cards
+- dialogs
+- mobile interfaces
+- loading states
+- error states
+- empty states
 
 The presentation layer must not contain complex business rules.
 
@@ -2363,20 +2373,19 @@ The resulting WorkShopOS architecture is:
 
 This architecture provides WorkShopOS with:
 
-* a lightweight MVP path
-* clear separation of concerns
-* multi-tenant isolation
-* database-level security
-* scalable workflow management
-* mobile-first workshop operation
-* controlled AI/vibe coding
-* versioned database evolution
-* testability
-* auditable business operations
-* future integration capability
-* future multi-branch expansion
-* future offline functionality
-* future service extraction without an initial microservices burden
+- a lightweight MVP path
+- clear separation of concerns
+- multi-tenant isolation
+- database-level security
+- scalable workflow management
+- mobile-first workshop operation
+- controlled AI/vibe coding
+- versioned database evolution
+- testability
+- auditable business operations
+- future integration capability
+- future multi-branch expansion
+- future offline functionality
+- future service extraction without an initial microservices burden
 
 The next engineering document should be **`DATABASE.md`**, because the database schema, tenancy model, relationships, constraints, indexes, RLS strategy and audit model need to be locked down before an AI coding agent begins implementing the application.
-

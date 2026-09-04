@@ -1,262 +1,91 @@
-# WorkShopOS — AI Coding Agent Instructions
+# WorkShopOS AI coding guide
 
-## 1. Project Identity
+## Project at a glance
 
-Project: WorkShopOS
+This repo is a Next.js + TypeScript application for a mobile-first autobody repair platform. The product is multi-tenant, RBAC-driven, and built around ongoing repair orders, workflow transitions, estimates, supplements, parts, invoices, and customer/vehicle records.
 
-Description:
-WorkShopOS is a lightweight, secure, mobile-first vehicle autobody collision repair management platform designed for autobody repair shops, panel beaters, spray painters, technicians, workshop managers, administrators, customers, and insurers.
+Source-of-truth docs:
 
-Primary objective:
-Provide a complete digital workflow for managing vehicles from intake through assessment, authorisation, repair, quality control, invoicing, payment, and collection.
+- [PRD.md](PRD.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [API_CONTRACTS.md](API_CONTRACTS.md)
+- [RBAC_PERMISSION_MATRIX.md](RBAC_PERMISSION_MATRIX.md)
+- [README.md](README.md)
 
-The system must be:
+## Core rules for AI agents
 
-- Secure
-- Multi-tenant
-- Role-based
-- Mobile-first
-- Responsive
-- Lightweight
-- Accessible
-- Offline-capable where practical
-- Scalable
-- Maintainable
-- API-first
-- Production-oriented
+- Read the relevant project docs before changing behavior or architecture.
+- Inspect existing implementation and package scripts before patching.
+- Prefer small, reversible changes over large rewrites.
+- Do not invent database columns, permissions, routes, roles, workflow states, or env vars that are not already defined.
+- Keep tenant isolation, authorization, and auditability in every change.
+- Trust server-side validation and database constraints over client data.
+- Never put business logic in React components or raw SQL in UI code.
 
-Do not build a toy/demo application.
+## Tech and architecture
 
-The MVP must be structured so it can evolve into a production SaaS platform.
+- Next.js 16, React 19, TypeScript, Tailwind, shadcn/ui patterns, TanStack Query
+- Supabase + PostgreSQL with RLS for tenant-safe data access
+- API-first architecture under `/api/v1`
+- Modular monolith structure; keep features under `src/modules/*`
+- Validation via Zod, authorization via RBAC checks, service/repository layering
+- Avoid new dependencies unless the repo already has a clear need
 
----
+## Expected code layout
 
-# 2. AI Agent Operating Rules
+- `app/` for app routes and entry points
+- `src/modules/` for domain modules such as customers, vehicles, repair-orders, workflow, invoices, payments, etc.
+- `src/lib/` for shared auth, RBAC, validation, database, storage, and error helpers
+- `src/components/` for reusable UI components
+- `tests/` for integration/unit coverage
 
-You are acting as a senior full-stack engineer.
+Preferred flow:
 
-Before modifying code:
+- Route or API handler
+- validation
+- authorization
+- service
+- repository
+- database
 
-1. Inspect the existing project.
-2. Inspect package.json.
-3. Inspect the database schema/migrations.
-4. Inspect authentication.
-5. Inspect existing components.
-6. Inspect routing.
-7. Inspect environment configuration.
-8. Inspect tests.
-9. Identify existing architecture before introducing new architecture.
+## Security and data integrity guardrails
 
-Never blindly overwrite existing working code.
+- Do not trust client-supplied `organisation_id`, `branch_id`, `user_id`, `role`, status, pricing, or totals.
+- Enforce server-side RBAC and tenant checks; do not rely on frontend hiding buttons.
+- Validate all request bodies, params, and query strings with Zod.
+- Use secure patterns for uploads and avoid exposing raw DB errors.
+- Preserve audit trails for sensitive actions and workflow changes.
+- Do not create destructive operations without explicit confirmation or reason capture.
 
-Prefer small, reversible changes.
+## Repository reality and commands
 
-Do not introduce new dependencies unless there is a clear reason.
+Current repo scripts:
 
-Do not duplicate existing functionality.
+- `npm run dev`
+- `npm run build`
+- `npm run start`
+- `npm run lint`
+- `npm run lint:fix`
+- `npm run typecheck`
 
-Do not create a second implementation of something that already exists.
+There is no `npm run test` script in this repo yet, so use the available verification commands and add focused tests for the behavior you change when relevant.
 
----
+Before declaring a feature complete, validate the relevant checks with the smallest command that exercises the change.
 
-# 3. Source-of-Truth Documents
+## Implementation expectations
 
-The following documents define the WorkShopOS architecture:
+- Build vertically: database, validation, authorization, service, API, frontend client, UI, tests.
+- Keep mobile-first UX and touch-friendly interactions in mind.
+- Do not bypass the existing architecture just to make code faster to write.
+- Favor small, correct, and maintainable fixes over generic abstractions.
 
-- PRD.md
-- ARCHITECTURE.md
-- API_CONTRACTS.md
-- RBAC_PERMISSION_MATRIX.md
-- AGENTS.md
+## Good default behavior for this repo
 
-If implementation conflicts with these documents:
-
-1. Security requirements take priority.
-2. Database integrity takes priority.
-3. API contracts take priority.
-4. Architecture takes priority.
-5. UI preferences can be adjusted when necessary.
-
-Do not silently change the architecture.
-
-If an architectural change is genuinely required, document it before implementing it.
-
----
-
-# 4. Technology Principles
-
-Preferred stack:
-
-Frontend:
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui where appropriate
-- Lucide icons
-- TanStack Query where appropriate
-
-Backend:
-- Next.js Route Handlers/API
-- TypeScript
-- Service layer
-- Repository/data-access layer
-- Zod validation
-
-Database:
-- PostgreSQL
-- Supabase
-- Row Level Security (RLS)
-
-Authentication:
-- Supabase Auth
-
-Storage:
-- Supabase Storage
-
-Testing:
-- Vitest
-- React Testing Library
-- Playwright where appropriate
-
-Package manager:
-- npm
-
-Development environment:
-- Linux Mint
-
-Do not introduce Docker unless explicitly requested.
-
-Do not introduce Kubernetes.
-
-Do not introduce microservices for the MVP.
-
-Use a modular monolith.
-
----
-
-# 5. Architecture
-
-Use the following logical architecture:
-
-Browser
-    ↓
-UI
-    ↓
-TanStack Query / API Client
-    ↓
-API Route
-    ↓
-Authentication
-    ↓
-Authorization / RBAC
-    ↓
-Request Validation
-    ↓
-Service Layer
-    ↓
-Repository
-    ↓
-PostgreSQL
-    ↓
-RLS
-
-Supporting services:
-
-- Audit
-- Notifications
-- Storage
-- Logging
-- Domain events
-
----
-
-# 6. Modular Monolith
-
-Do not create microservices.
-
-Organise functionality into modules.
-
-Recommended structure:
-
-src/
-├── app/
-│   ├── (auth)/
-│   ├── (dashboard)/
-│   └── api/
-│       └── v1/
-│
-├── components/
-│   ├── ui/
-│   ├── layout/
-│   ├── forms/
-│   └── data-table/
-│
-├── modules/
-│   ├── auth/
-│   ├── organisations/
-│   ├── branches/
-│   ├── customers/
-│   ├── vehicles/
-│   ├── repair-orders/
-│   ├── workflow/
-│   ├── estimates/
-│   ├── supplements/
-│   ├── parts/
-│   ├── labour/
-│   ├── inspections/
-│   ├── photos/
-│   ├── documents/
-│   ├── invoices/
-│   ├── payments/
-│   ├── notifications/
-│   └── reports/
-│
-├── lib/
-│   ├── auth/
-│   ├── rbac/
-│   ├── validation/
-│   ├── database/
-│   ├── audit/
-│   ├── errors/
-│   ├── logging/
-│   └── storage/
-│
-├── types/
-└── tests/
-
----
-
-# 7. Module Structure
-
-Each major module should follow:
-
-modules/
-└── repair-orders/
-    ├── components/
-    ├── schemas/
-    ├── services/
-    ├── repositories/
-    ├── types/
-    └── index.ts
-
-Do not place business logic inside React components.
-
-Do not place SQL directly inside UI components.
-
-Do not place complex business rules inside API route handlers.
-
-The preferred flow is:
-
-Route
-→ Controller/API handler
-→ Validation
-→ Authorization
-→ Service
-→ Repository
-→ Database
-
----
+- Keep API routes under the app’s versioned API pattern.
+- Store business rules in service layers, not in route handlers or UI components.
+- Use explicit action endpoints for state transitions instead of arbitrary generic patch updates.
+- Ensure cross-tenant and cross-branch access is prevented in both application logic and database policies.
+- Prefer existing patterns and modules over new implementations of the same domain logic.
 
 # 8. Database Rules
 
@@ -293,9 +122,9 @@ Every tenant-owned record must be associated with an organisation.
 Typical structure:
 
 organisation
-    ↓
+↓
 branch
-    ↓
+↓
 users / customers / vehicles / repair orders
 
 Users must only access data belonging to their organisation.
@@ -320,11 +149,11 @@ RLS must be enabled on all tenant-sensitive tables.
 Example conceptual policy:
 
 authenticated user
-    ↓
+↓
 membership
-    ↓
+↓
 organisation
-    ↓
+↓
 record.organisation_id
 
 A user must never be able to access another organisation's records by changing an ID in the URL.
@@ -409,7 +238,7 @@ Roles should aggregate permissions.
 Example:
 
 Workshop Manager
-    ↓
+↓
 repair_order.view
 repair_order.create
 repair_order.update
@@ -433,9 +262,9 @@ Authorization must occur server-side.
 Example:
 
 await authorization.require(
-    user,
-    "repair_order.transition",
-    repairOrder
+user,
+"repair_order.transition",
+repairOrder
 );
 
 The frontend may hide unavailable actions for usability.
@@ -477,28 +306,28 @@ Do not allow arbitrary status modification through generic PATCH endpoints.
 Successful single-resource response:
 
 {
-  "data": {}
+"data": {}
 }
 
 Successful collection:
 
 {
-  "data": [],
-  "meta": {
-    "page": 1,
-    "page_size": 25,
-    "total": 0
-  }
+"data": [],
+"meta": {
+"page": 1,
+"page_size": 25,
+"total": 0
+}
 }
 
 Error:
 
 {
-  "error": {
-    "code": "FORBIDDEN",
-    "message": "You do not have permission to perform this action.",
-    "request_id": "uuid"
-  }
+"error": {
+"code": "FORBIDDEN",
+"message": "You do not have permission to perform this action.",
+"request_id": "uuid"
+}
 }
 
 Never expose raw database errors.
@@ -514,14 +343,14 @@ Use Zod.
 Example:
 
 const schema = z.object({
-    customer_id: z.string().uuid(),
-    vehicle_id: z.string().uuid(),
-    priority: z.enum([
-        "low",
-        "normal",
-        "high",
-        "urgent"
-    ])
+customer_id: z.string().uuid(),
+vehicle_id: z.string().uuid(),
+priority: z.enum([
+"low",
+"normal",
+"high",
+"urgent"
+])
 });
 
 Validate:
@@ -727,9 +556,9 @@ Storage path should include tenant context.
 Example:
 
 organisation/
-    branch/
-        repair-order/
-            photos/
+branch/
+repair-order/
+photos/
 
 ---
 
@@ -966,29 +795,29 @@ A repair order should provide a clear operational view.
 Recommended sections:
 
 Header
-    ↓
+↓
 Vehicle
-    ↓
+↓
 Customer
-    ↓
+↓
 Repair status
-    ↓
+↓
 Progress timeline
-    ↓
+↓
 Tasks
-    ↓
+↓
 Parts
-    ↓
+↓
 Photos
-    ↓
+↓
 Estimate
-    ↓
+↓
 Supplements
-    ↓
+↓
 QC
-    ↓
+↓
 Invoice
-    ↓
+↓
 Activity/Audit
 
 ---
@@ -1040,6 +869,7 @@ Add indexes for common queries.
 Examples:
 
 repair_orders:
+
 - organisation_id
 - branch_id
 - status
@@ -1048,12 +878,14 @@ repair_orders:
 - vehicle_id
 
 vehicles:
+
 - organisation_id
 - registration
 - vin
 - customer_id
 
 customers:
+
 - organisation_id
 - phone
 - email
@@ -1092,9 +924,11 @@ Organisation:
 Demo AutoBody
 
 Branches:
+
 - Johannesburg Workshop
 
 Users:
+
 - Admin
 - Workshop Manager
 - Estimator
@@ -1116,17 +950,20 @@ Every business-critical feature requires tests.
 Minimum:
 
 Unit tests:
+
 - validation
 - workflow rules
 - calculations
 - permissions
 
 Integration tests:
+
 - database operations
 - RLS
 - API endpoints
 
 End-to-end:
+
 - login
 - create customer
 - create vehicle
@@ -1487,13 +1324,13 @@ Recommended:
 
 main
 develop
-feature/*
-fix/*
+feature/_
+fix/_
 
 For solo development, a simpler approach is acceptable:
 
 main
-feature/*
+feature/\*
 
 Never develop directly on production.
 
@@ -1775,6 +1612,7 @@ Do not invent database fields or permissions.
 After implementation, run lint, typecheck, tests and build.
 
 Report:
+
 1. files changed
 2. database changes
 3. API changes
@@ -1985,3 +1823,13 @@ security
 → convenience
 
 WorkShopOS must remain a lightweight modular monolith until real scale justifies architectural expansion.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

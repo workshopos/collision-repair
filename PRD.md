@@ -2,6 +2,18 @@ For WorkShopOS, I would use a controlled vertical-slice roadmap rather than a si
 
 The AI should never be allowed to decide the entire architecture while coding. AGENTS.md, PRD.md, ARCHITECTURE.md, API_CONTRACTS.md, and RBAC_PERMISSION_MATRIX.md remain the source of truth.
 
+## Progress checklist
+
+- [x] Stage 1 — Repository audit concept and constraints are defined.
+- [x] Stage 2 — Engineering guardrails are implemented and verified in code.
+- [x] Stage 3 — Environment configuration scaffold exists and .env.local is ignored by Git.
+- [x] Stage 4 — Supabase foundation is scaffolded in the repo.
+- [x] Stage 5 — Identity and tenant foundation migration is implemented.
+- [x] Stage 6 — Route/session protection, unauthenticated redirects, and authenticated redirects are implemented and verified; full route-wide auth enforcement remains deferred.
+- [ ] Stage 7 — Current org, current branch, and branch switching are implemented and verified; only RLS runtime verification remains blocked pending local DB infrastructure.
+- [ ] Stage 8 — RBAC engine remains incomplete; validation exists, but enforcement is not yet complete.
+- [ ] Stages 9+ — Repair-order module: read, list, create, update, archive, and workflow/status transition endpoints implemented and verified; repair-order service-layer operations, history API, assignment, finance, inspection, UI, audit, offline, and idempotency work remain pending.
+
 WorkShopOS — 40-Stage AI Vibe-Coding Roadmap
 How to use this roadmap
 
@@ -20,23 +32,23 @@ Only then move to the next stage.
 Recommended cycle:
 
 AI Prompt
-   ↓
+↓
 Inspect
-   ↓
+↓
 Plan
-   ↓
+↓
 Implement
-   ↓
+↓
 Test
-   ↓
+↓
 Lint
-   ↓
+↓
 Typecheck
-   ↓
+↓
 Build
-   ↓
+↓
 Human review
-   ↓
+↓
 Git commit
 PHASE 0 — GOVERNANCE & FOUNDATION
 Stage 1 — Repository audit
@@ -202,6 +214,13 @@ Run database validation where available.
 Stage 6 — Authentication
 Implement WorkShopOS authentication.
 
+Progress checklist:
+
+- [x] Server-side route/session protection and adversarial regression coverage are implemented, including no-session, invalid-session, thrown session-lookup, and valid-session cases.
+- [x] Unauthenticated users are redirected from the protected home page to `/login`, with regression coverage for missing, invalid, and failed session lookup.
+- [x] Authenticated users are redirected away from `/login` to `/`, with explicit redirect-target regression coverage.
+- [ ] Full authentication enforcement across all routes remains deferred to a later slice.
+
 Scope:
 
 - login
@@ -230,6 +249,14 @@ Add tests for:
 Run lint, typecheck, tests and build.
 Stage 7 — Organisation and branch context
 Implement organisation and branch context.
+
+Progress checklist:
+
+- [x] Shared server-side tenant contract and minimal tenant-aware route boundary are implemented and covered by regression tests.
+- [x] Current organisation selection is implemented with server-side membership validation and six regression cases.
+- [x] Current branch selection is implemented with organisation-scoped membership validation and six regression cases, including cross-organisation branch mismatch.
+- [x] Branch switching is implemented with an unsigned HttpOnly active-context cookie, server-side revalidation, a real consumer route, and nine regression cases.
+- [ ] RLS policies written and reviewed; runtime verification blocked pending local DB environment (Supabase CLI/Docker setup required).
 
 A user must be able to belong to an organisation and one or more branches according to the architecture.
 
@@ -1038,6 +1065,7 @@ Do NOT add new product functionality.
 Audit:
 
 SECURITY
+
 - authentication
 - authorization
 - RBAC
@@ -1051,6 +1079,7 @@ SECURITY
 - error leakage
 
 DATABASE
+
 - indexes
 - foreign keys
 - constraints
@@ -1060,6 +1089,7 @@ DATABASE
 - soft deletion
 
 APPLICATION
+
 - TypeScript errors
 - React errors
 - server/client boundaries
@@ -1070,6 +1100,7 @@ APPLICATION
 - responsive design
 
 PERFORMANCE
+
 - unnecessary dependencies
 - excessive client components
 - unnecessary requests
@@ -1079,6 +1110,7 @@ PERFORMANCE
 - caching opportunities
 
 TESTING
+
 - unit tests
 - integration tests
 - workflow tests

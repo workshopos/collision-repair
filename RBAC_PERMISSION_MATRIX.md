@@ -1,5 +1,14 @@
 # WorkShopOS — Complete RBAC & Permission Matrix
 
+## Progress checklist
+
+- [x] RBAC model, scopes, roles, and permission naming are documented.
+- [x] Validation schemas and scope checks exist in code.
+- [x] Unit tests cover role validation, scope validation, multiple-role assumptions, and separation of duties.
+- [ ] Runtime permission enforcement for authenticated users is not yet complete.
+- [ ] Role-management APIs and custom-role administration are not yet implemented.
+- [x] Organisation/branch permission enforcement at the server boundary is implemented via the shared tenant contract and permission checks before tenant-aware business logic executes.
+
 **Document:** RBAC.md
 **System:** WorkShopOS
 **Version:** 1.0
@@ -1529,7 +1538,7 @@ Never implement:
 
 ```typescript
 if (!permission) {
-    allow();
+  allow();
 }
 ```
 
@@ -1537,7 +1546,7 @@ Instead:
 
 ```typescript
 if (!permission) {
-    deny();
+  deny();
 }
 ```
 
@@ -2015,28 +2024,19 @@ Audit
 Application code should expose a common function:
 
 ```typescript
-hasPermission(
-    user,
-    "repair_order.transition"
-)
+hasPermission(user, "repair_order.transition");
 ```
 
 And:
 
 ```typescript
-assertPermission(
-    user,
-    "repair_order.transition"
-)
+assertPermission(user, "repair_order.transition");
 ```
 
 For resource-level checks:
 
 ```typescript
-assertCanAccessRepairOrder(
-    user,
-    repairOrderId
-)
+assertCanAccessRepairOrder(user, repairOrderId);
 ```
 
 ---
@@ -2054,10 +2054,7 @@ as the sole security mechanism.
 Prefer:
 
 ```typescript
-await assertPermission(
-    session.user.id,
-    "invoice.void"
-);
+await assertPermission(session.user.id, "invoice.void");
 ```
 
 followed by:
@@ -2667,4 +2664,3 @@ The final WorkShopOS authorization architecture should be:
 This gives WorkShopOS a **scalable authorization model rather than a collection of hard-coded frontend roles**.
 
 It also aligns the RBAC system with the PRD's core requirements: multi-tenant/branch isolation, technician-specific access, manager dashboards, estimating, supplements, parts, QC, invoicing, customer access, insurer access and auditability.
-
