@@ -1,0 +1,383 @@
+# WorkShopOS Build Status
+
+Date: 2026-09-04
+Status: EARLY DEVELOPMENT
+
+## 1. Executive summary
+
+The repository contains a verified engineering foundation, but it does not yet match the full feature scope described in [AGENTS.md](AGENTS.md), [PRD.md](PRD.md), [ARCHITECTURE.md](ARCHITECTURE.md), [API_CONTRACTS.md](API_CONTRACTS.md), [RBAC_PERMISSION_MATRIX.md](RBAC_PERMISSION_MATRIX.md), and [DATABASE.md](DATABASE.md). The codebase currently demonstrates a working foundation for auth, tenant context, RBAC tables, and a limited repair-order API, but it is not yet a complete or production-ready WorkShopOS implementation.
+
+The most important verified facts are:
+
+- [package.json](package.json) defines a Next.js 16 + React 19 + TypeScript project.
+- `npm run lint` completed with one warning and zero errors.
+- `npm run typecheck` completed successfully.
+- `npm run build` completed successfully.
+- `npm run test` passed 19 test files and 139 tests.
+- The repository contains migration drift in the repair-order workflow model, including incompatible RPC and transition-history contracts.
+- The full domain scope from the product docs is not implemented.
+
+## 2. Repository comparison against the authoritative documents
+
+### Verified against the docs
+
+The repository includes the expected source-of-truth documents:
+
+- [AGENTS.md](AGENTS.md)
+- [PRD.md](PRD.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [API_CONTRACTS.md](API_CONTRACTS.md)
+- [RBAC_PERMISSION_MATRIX.md](RBAC_PERMISSION_MATRIX.md)
+- [DATABASE.md](DATABASE.md)
+
+These documents define a broader product and architecture than the code currently implements. The repository is therefore best described as a partial foundation rather than a finished implementation of the target system.
+
+## 3. Area-by-area audit
+
+### Area: Project foundation
+
+1. What was completed
+   - Next.js app scaffold is present.
+   - TypeScript, Tailwind, and Vitest configuration are present.
+   - Environment-aware app configuration exists in [src/lib/auth/config.ts](src/lib/auth/config.ts).
+
+2. Files affected
+   - [package.json](package.json)
+   - [next.config.ts](next.config.ts)
+   - [tsconfig.json](tsconfig.json)
+   - [vitest.config.mjs](vitest.config.mjs)
+   - [eslint.config.mjs](eslint.config.mjs)
+   - [src/lib/auth/config.ts](src/lib/auth/config.ts)
+
+3. Tests/verification performed
+   - `npm run lint` — succeeded
+   - `npm run typecheck` — succeeded
+   - `npm run build` — succeeded
+
+4. Remaining issues
+   - README content is still the default Next.js starter content rather than WorkShopOS-specific documentation.
+   - No verified production deployment configuration was found.
+
+5. Next recommended task
+   - Replace generic project docs and deployment configuration with WorkShopOS-specific operational documentation.
+
+### Area: Tooling and repository configuration
+
+1. What was completed
+   - Strict TypeScript configuration, ESLint, Vitest, path aliases, and environment-file ignore rules are present.
+   - The default and integration test commands are defined in [package.json](package.json).
+
+2. Files affected
+   - [tsconfig.json](tsconfig.json)
+   - [eslint.config.mjs](eslint.config.mjs)
+   - [vitest.config.mjs](vitest.config.mjs)
+   - [vitest.integration.config.mjs](vitest.integration.config.mjs)
+   - [.gitignore](.gitignore)
+   - [package.json](package.json)
+
+3. Tests/verification performed
+   - `npm run lint` completed with one warning and zero errors.
+   - `npm run typecheck` succeeded.
+   - `npm run test` passed 19 test files and 139 tests.
+   - `npm run build` succeeded.
+
+4. Remaining issues
+   - [vitest.config.mjs](vitest.config.mjs) contains a duplicated `exclude` property.
+   - No `.github` CI workflow was found, despite [ARCHITECTURE.md](ARCHITECTURE.md) identifying GitHub Actions as the CI/CD target.
+   - The build reports that the `middleware` file convention is deprecated in favor of `proxy`.
+
+5. Next recommended task
+   - Remove the duplicated Vitest configuration, add a minimal CI workflow, and plan the middleware-to-proxy migration.
+
+### Area: Documentation
+
+1. What was completed
+   - The required project documents are present in the repo.
+   - The docs describe the target architecture, API contracts, RBAC, and database principles.
+
+2. Files affected
+   - [AGENTS.md](AGENTS.md)
+   - [PRD.md](PRD.md)
+   - [ARCHITECTURE.md](ARCHITECTURE.md)
+   - [API_CONTRACTS.md](API_CONTRACTS.md)
+   - [RBAC_PERMISSION_MATRIX.md](RBAC_PERMISSION_MATRIX.md)
+   - [DATABASE.md](DATABASE.md)
+
+3. Tests/verification performed
+   - Repository file inspection only.
+
+4. Remaining issues
+   - The implementation does not yet match the full roadmap described in the docs.
+   - [README.md](README.md) is generic and outdated.
+   - [CHANGELOG.md](CHANGELOG.md) is missing.
+   - [AGENTS.md](AGENTS.md) still says there is no `npm run test` script, but [package.json](package.json) defines `test`, `test:integration`, `test:watch`, and `test:coverage` scripts.
+   - Several roadmap/documentation checklists describe intended or partial work more positively than the current implementation evidence supports.
+
+5. Next recommended task
+   - Update the project docs to reflect the current implementation state and call out the remaining gaps explicitly.
+
+### Area: Database foundation
+
+1. What was completed
+   - The identity and tenant foundation is implemented in [supabase/migrations/20260830000001_identity_tenant_foundation.sql](supabase/migrations/20260830000001_identity_tenant_foundation.sql).
+   - RBAC foundation tables and permissions exist in [supabase/migrations/20260830000002_rbac_foundation.sql](supabase/migrations/20260830000002_rbac_foundation.sql).
+   - Minimal repair-order tables, permissions, and transition history exist in the migration chain under [supabase/migrations](supabase/migrations).
+
+2. Files affected
+   - [supabase/migrations/20260830000001_identity_tenant_foundation.sql](supabase/migrations/20260830000001_identity_tenant_foundation.sql)
+   - [supabase/migrations/20260830000002_rbac_foundation.sql](supabase/migrations/20260830000002_rbac_foundation.sql)
+   - [supabase/migrations/20260901000001_repair_orders_read_slice.sql](supabase/migrations/20260901000001_repair_orders_read_slice.sql)
+   - [supabase/migrations/20260901000002_repair_order_create_permission.sql](supabase/migrations/20260901000002_repair_order_create_permission.sql)
+   - [supabase/migrations/20260901000003_repair_order_update_permission.sql](supabase/migrations/20260901000003_repair_order_update_permission.sql)
+   - [supabase/migrations/20260901000004_repair_order_archive.sql](supabase/migrations/20260901000004_repair_order_archive.sql)
+   - [supabase/migrations/20260901000005_repair_order_transition_slice.sql](supabase/migrations/20260901000005_repair_order_transition_slice.sql)
+   - [supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql](supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql)
+
+3. Tests/verification performed
+   - Repo inspection of migration files.
+   - The saved integration output records a live Supabase RLS run with 2 test files passed, 7 tests passed, and 1 todo: [rls-test-output.txt](rls-test-output.txt).
+
+4. Remaining issues
+   - There is a schema discrepancy between the older repair_order status model and the newer lifecycle-stage model.
+   - The migration history is not yet reconciled to a single final schema.
+   - The lifecycle migration's transition-history insert expects columns such as `actor_id`, `action`, and lifecycle/stage fields that are not created by the earlier transition-table migration.
+   - The lifecycle migration defines a different `transition_repair_order` signature from the earlier RPC, while the transition route sends eight named parameters that match neither SQL function signature.
+   - The list/create/update API routes still use the older `status` column while the lifecycle migration renames it to `legacy_status`.
+
+5. Next recommended task
+   - Reconcile the repair-order schema and migration history to one final lifecycle model before continuing with additional workflow work.
+
+### Area: Authentication and tenant context
+
+1. What was completed
+   - Session and auth utilities exist in [src/lib/auth/session.ts](src/lib/auth/session.ts), [src/lib/auth/server.ts](src/lib/auth/server.ts), and [src/lib/auth/config.ts](src/lib/auth/config.ts).
+   - Login and logout routes exist at [app/api/auth/login/route.ts](app/api/auth/login/route.ts) and [app/api/auth/logout/route.ts](app/api/auth/logout/route.ts).
+   - Tenant validation and membership checks exist in [src/server/services/tenant-context.ts](src/server/services/tenant-context.ts) and [src/server/services/active-tenant-context.ts](src/server/services/active-tenant-context.ts).
+
+2. Files affected
+   - [src/lib/auth/session.ts](src/lib/auth/session.ts)
+   - [src/lib/auth/server.ts](src/lib/auth/server.ts)
+   - [src/lib/auth/config.ts](src/lib/auth/config.ts)
+   - [app/api/auth/login/route.ts](app/api/auth/login/route.ts)
+   - [app/api/auth/logout/route.ts](app/api/auth/logout/route.ts)
+   - [src/server/services/tenant-context.ts](src/server/services/tenant-context.ts)
+   - [src/server/services/active-tenant-context.ts](src/server/services/active-tenant-context.ts)
+   - [app/api/v1/tenant-context/route.ts](app/api/v1/tenant-context/route.ts)
+   - [app/api/v1/tenant-context/switch-branch/route.ts](app/api/v1/tenant-context/switch-branch/route.ts)
+
+3. Tests/verification performed
+   - Repo inspection only for the implementation.
+   - No live Supabase auth verification was run from the repo evidence.
+
+4. Remaining issues
+   - The auth flow is present but not fully proven against a real runtime environment.
+   - Live RLS tenant-isolation evidence is present in [rls-test-output.txt](rls-test-output.txt), but it does not validate the complete migration chain or all application routes.
+
+5. Next recommended task
+   - Run the tenant and auth validation suite against a live local or test Supabase environment and fix any failures before expanding the auth surface.
+
+### Area: RBAC
+
+1. What was completed
+   - The RBAC data model exists in the database foundation migration.
+   - Permission and role assignment logic exists in [src/server/services/rbac-engine.ts](src/server/services/rbac-engine.ts).
+
+2. Files affected
+   - [supabase/migrations/20260830000002_rbac_foundation.sql](supabase/migrations/20260830000002_rbac_foundation.sql)
+   - [src/server/services/rbac-engine.ts](src/server/services/rbac-engine.ts)
+
+3. Tests/verification performed
+   - Repository inspection.
+   - A limited RBAC-related test file exists in [tests/integration/rbac-permissions.test.ts](tests/integration/rbac-permissions.test.ts).
+
+4. Remaining issues
+   - Runtime enforcement is incomplete.
+   - `canAssignRole()` includes a placeholder comment indicating future enhancement.
+   - `getRoleAssignments()`, `getEffectivePermissions()`, and `assertPermission()` pass an always-true membership callback into the tenant boundary, so the service layer does not independently verify that the requested organisation belongs to the authenticated user.
+   - `assignRole()` and `removeRole()` use the service-role client and explicitly rely on callers to authorize them; no role-management API or self-contained authorization guard is present.
+   - The RBAC implementation is not yet complete enough to be trusted for production enforcement.
+
+5. Next recommended task
+   - Finish RBAC enforcement for the real app routes and verify permission checks against a live tenant context before enabling additional protected business features.
+
+### Area: API surface
+
+1. What was completed
+   - Auth routes exist.
+   - Tenant-context routes exist.
+   - Repair-order CRUD and transition routes exist.
+
+2. Files affected
+   - [app/api/auth/login/route.ts](app/api/auth/login/route.ts)
+   - [app/api/auth/logout/route.ts](app/api/auth/logout/route.ts)
+   - [app/api/v1/auth-protected/route.ts](app/api/v1/auth-protected/route.ts)
+   - [app/api/v1/tenant-context/route.ts](app/api/v1/tenant-context/route.ts)
+   - [app/api/v1/tenant-context/current-organisation/route.ts](app/api/v1/tenant-context/current-organisation/route.ts)
+   - [app/api/v1/tenant-context/current-branch/route.ts](app/api/v1/tenant-context/current-branch/route.ts)
+   - [app/api/v1/tenant-context/switch-branch/route.ts](app/api/v1/tenant-context/switch-branch/route.ts)
+   - [app/api/v1/repair-orders/route.ts](app/api/v1/repair-orders/route.ts)
+   - [app/api/v1/repair-orders/[id]/route.ts](app/api/v1/repair-orders/[id]/route.ts)
+   - [app/api/v1/repair-orders/[id]/transition/route.ts](app/api/v1/repair-orders/[id]/transition/route.ts)
+
+3. Tests/verification performed
+   - `npm run build` succeeded.
+   - `npm run typecheck` succeeded.
+   - `npm run lint` succeeded.
+   - The repository contains dedicated route tests, but not all are green in the current run.
+
+4. Remaining issues
+   - The API does not yet cover the broader WorkShopOS modules described in the docs.
+   - The transition API is not yet aligned to a single consistent workflow model.
+   - The route's RPC parameter object is incompatible with both migration-defined function signatures.
+   - The non-transition repair-order routes still use the legacy `status` column.
+   - Auth and tenant routes return ad-hoc string errors rather than the documented structured error contract with an error code and request ID.
+
+5. Next recommended task
+   - Finalize the repair-order transition schema and then extend the same API pattern to the next domain slices only after the foundation is fully validated.
+
+### Area: Frontend
+
+1. What was completed
+   - The app shell and authenticated layout exist.
+   - A dashboard page and a basic repair-order list page exist.
+   - Login page exists.
+
+2. Files affected
+   - [app/layout.tsx](app/layout.tsx)
+   - [app/login/page.tsx](app/login/page.tsx)
+   - [app/(authenticated)/layout.tsx](<app/(authenticated)/layout.tsx>)
+   - [app/(authenticated)/page.tsx](<app/(authenticated)/page.tsx>)
+   - [app/(authenticated)/repair-orders/page.tsx](<app/(authenticated)/repair-orders/page.tsx>)
+   - [src/components/layout/app-shell.tsx](src/components/layout/app-shell.tsx)
+
+3. Tests/verification performed
+   - `npm run test` executed and reported 18 passing files and 1 failing file.
+   - The failing file was [tests/unit/auth-infrastructure.test.ts](tests/unit/auth-infrastructure.test.ts).
+
+4. Remaining issues
+   - There is no functional workflow detail UI.
+   - No customer, vehicle, estimate, or invoice UI exists yet.
+   - The current repair-order UI is limited to a list page.
+   - The dashboard displays static placeholder values such as `Online`, `Active`, and `Review queue` rather than data-backed operational metrics.
+   - The `Workshop settings` navigation item points to `/settings`, but no matching app route was found.
+   - No frontend loading, error, pagination controls, create form, detail screen, or transition controls were found for the repair-order workflow.
+
+5. Next recommended task
+   - Build the repair-order detail view with workflow controls and then extend to the next business screens only after the data model is stable.
+
+### Area: Repair-order workflow
+
+1. What was completed
+   - A transition endpoint exists.
+   - A lifecycle-stage migration model exists.
+   - A minimal transition-history table exists.
+
+2. Files affected
+   - [app/api/v1/repair-orders/[id]/transition/route.ts](app/api/v1/repair-orders/[id]/transition/route.ts)
+   - [supabase/migrations/20260901000005_repair_order_transition_slice.sql](supabase/migrations/20260901000005_repair_order_transition_slice.sql)
+   - [supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql](supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql)
+
+3. Tests/verification performed
+   - Repository inspection of the transition route and migration files.
+   - The saved RLS integration output reports 7 passing tests and 1 todo.
+   - `npm run test` executed; the unit suite is not fully green.
+
+4. Remaining issues
+   - There are two different repair-order workflow models in the migration history.
+   - The transition-history table shape, lifecycle RPC shape, and route call shape are not aligned.
+   - The transition code and schema are not yet aligned to one final version.
+   - No verified full workflow e2e flow exists.
+   - The route unit tests mock the Supabase RPC and therefore do not prove that the SQL state machine or transition-history write succeeds.
+
+5. Next recommended task
+   - Choose one canonical lifecycle state model and align the migration, route logic, and tests before implementing the next workflow stage.
+
+### Area: Testing and quality checks
+
+1. What was completed
+   - Unit tests exist for auth, app shell, tenant, RBAC, and repair-order flows.
+   - Integration test scaffolding exists.
+   - Typecheck and production build succeed in this environment; lint reports one warning.
+
+2. Files affected
+   - [tests/unit](tests/unit)
+   - [tests/integration](tests/integration)
+   - [vitest.config.mjs](vitest.config.mjs)
+   - [vitest.integration.config.mjs](vitest.integration.config.mjs)
+
+3. Tests/verification performed
+   - `npm run lint` — completed with one warning and zero errors (`createServerSupabaseClient` is unused in [app/api/v1/repair-orders/route.ts](app/api/v1/repair-orders/route.ts))
+   - `npm run typecheck` — succeeded
+   - `npm run build` — succeeded
+   - `npm run test` — passed 19 test files and 139 tests
+
+4. Remaining issues
+   - The default test suite is currently green: 19 test files and 139 tests passed.
+   - There is no verified e2e coverage for workflow progression.
+   - [tests/unit/repair-order-transition-migration.test.ts](tests/unit/repair-order-transition-migration.test.ts) checks migration text rather than executing the migration against PostgreSQL.
+
+5. Next recommended task
+   - Remove the unused import reported by lint, then add a small end-to-end workflow validation focused on the repair-order path.
+
+## 4. Status against the project roadmap
+
+### What is clearly verified as completed
+
+- Next.js app foundation is in place.
+- Auth/session helpers exist.
+- Tenant context and membership validation exist.
+- RBAC tables exist.
+- Repair-order CRUD and transition routes exist.
+- Basic app shell and dashboard are present.
+- Typecheck and build pass; lint has one warning and zero errors.
+
+### What remains unverified or incomplete
+
+- Full RBAC enforcement and complete application-level tenant validation against a live Supabase instance.
+- Final repair-order workflow schema and migration reconciliation.
+- Full WorkShopOS domain modules beyond repair orders.
+- Production deployment and CI configuration.
+- End-to-end workflow validation.
+
+## 5. Current maturity classification
+
+Status: EARLY DEVELOPMENT
+
+This repo has a credible foundation, but it does not yet satisfy the full product scope described in the authoritative docs. The codebase currently demonstrates a secure-enough starting point for auth and tenant foundations, but the project still requires a significant amount of functional and verification work before it can be considered a usable WorkShopOS application.
+
+## 6. Verification evidence
+
+The status above is based only on repository evidence and these verified commands:
+
+- `npm run lint` — completed with one warning and zero errors
+- `npm run typecheck` — succeeded
+- `npm run build` — succeeded
+- `npm run test` — passed 19 test files and 139 tests
+
+Key files reviewed:
+
+- [AGENTS.md](AGENTS.md)
+- [PRD.md](PRD.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [API_CONTRACTS.md](API_CONTRACTS.md)
+- [RBAC_PERMISSION_MATRIX.md](RBAC_PERMISSION_MATRIX.md)
+- [DATABASE.md](DATABASE.md)
+- [package.json](package.json)
+- [src/server/services/tenant-context.ts](src/server/services/tenant-context.ts)
+- [src/server/services/rbac-engine.ts](src/server/services/rbac-engine.ts)
+- [app/api/v1/repair-orders/[id]/transition/route.ts](app/api/v1/repair-orders/[id]/transition/route.ts)
+- [supabase/migrations/20260830000001_identity_tenant_foundation.sql](supabase/migrations/20260830000001_identity_tenant_foundation.sql)
+- [supabase/migrations/20260830000002_rbac_foundation.sql](supabase/migrations/20260830000002_rbac_foundation.sql)
+- [supabase/migrations/20260901000005_repair_order_transition_slice.sql](supabase/migrations/20260901000005_repair_order_transition_slice.sql)
+- [supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql](supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql)
+- [tests/unit/auth-infrastructure.test.ts](tests/unit/auth-infrastructure.test.ts)
+
+This document intentionally records only work that is completed and verifiable from the repository at the current date.
+
+- [supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql](supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql)
+- [src/server/services/rbac-engine.ts](src/server/services/rbac-engine.ts)
+- [src/server/services/tenant-context.ts](src/server/services/tenant-context.ts)
+- [app/api/v1/repair-orders/[id]/transition/route.ts](app/api/v1/repair-orders/[id]/transition/route.ts)
+- [tests/unit/auth-infrastructure.test.ts](tests/unit/auth-infrastructure.test.ts)
+
+This document is intended to be updated whenever significant WorkShopOS development is completed, using verified repo evidence only.
