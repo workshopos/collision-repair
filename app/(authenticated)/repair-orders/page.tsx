@@ -29,7 +29,7 @@ export default async function RepairOrdersPage() {
             {data.map((ro) => (
               <tr key={ro.id} className="border-b border-neutral-100">
                 <td className="py-2">{ro.ro_number}</td>
-                <td className="py-2">{ro.status}</td>
+                <td className="py-2">{ro.lifecycle_status}</td>
                 <td className="py-2">
                   {new Date(ro.created_at).toLocaleDateString()}
                 </td>

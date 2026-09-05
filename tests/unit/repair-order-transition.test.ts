@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { POST as createRepairOrder } from "@/app/api/v1/repair-orders/route";
 import { POST } from "@/app/api/v1/repair-orders/[id]/transition/route";
 import { AuthenticationRequiredError } from "@/src/lib/auth/session";
 import { requireAuthenticatedUser } from "@/src/lib/auth/session";
@@ -160,6 +161,62 @@ describe("Repair order transition route", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Authentication required" });
+  });
+
+  it("creates repair orders using the lifecycle status contract instead of the legacy status field", async () => {
+    const insert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: repairOrderId,
+            organisation_id: orgA,
+            branch_id: branchA1,
+            ro_number: "RO-1001",
+            lifecycle_status: "intake",
+            primary_repair_stage: null,
+            customer_id: null,
+            vehicle_id: null,
+            created_by: userId,
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z",
+          },
+          error: null,
+        }),
+      }),
+    });
+
+    vi.mocked(createAdminSupabaseClient).mockResolvedValue({
+      from: vi.fn().mockReturnValue({
+        insert,
+      }),
+    } as never);
+
+    const response = await createRepairOrder(
+      new Request("http://localhost/api/v1/repair-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organisationId: orgA,
+          branchId: branchA1,
+          ro_number: "RO-1001",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organisation_id: orgA,
+        branch_id: branchA1,
+        ro_number: "RO-1001",
+        lifecycle_status: "intake",
+        primary_repair_stage: null,
+        created_by: userId,
+      }),
+    );
+    expect(insert).not.toHaveBeenCalledWith(
+      expect.objectContaining({ status: expect.anything() }),
+    );
   });
 
   it("rejects an invalid UUID path parameter", async () => {

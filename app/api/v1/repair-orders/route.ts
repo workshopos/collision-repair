@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/src/lib/auth/server";
 import {
   AuthenticationRequiredError,
   requireAuthenticatedUser,
@@ -21,7 +20,8 @@ const createRepairOrderSchema = z.object({
   organisationId: z.string().uuid("Organisation ID must be a valid UUID."),
   branchId: z.string().uuid("Branch ID must be a valid UUID."),
   ro_number: z.string().trim().min(1).max(100),
-  status: z.literal("intake"),
+  lifecycle_status: z.enum(["intake"]).optional(),
+  status: z.enum(["intake"]).optional(),
 });
 
 function parsePositiveInteger(value: string | null, fallback: number) {
@@ -119,6 +119,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuthenticatedUser();
     const body = createRepairOrderSchema.parse(await request.json());
+    const lifecycleStatus = body.lifecycle_status ?? body.status ?? "intake";
     const scope = await resolveTenantContext({
       organisationId: body.organisationId,
       branchId: body.branchId,
@@ -139,7 +140,8 @@ export async function POST(request: Request) {
         organisation_id: validatedScope.organisationId,
         branch_id: validatedScope.branchId,
         ro_number: body.ro_number,
-        status: body.status,
+        lifecycle_status: lifecycleStatus,
+        primary_repair_stage: null,
         created_by: user.id,
       })
       .select(
@@ -148,7 +150,8 @@ export async function POST(request: Request) {
         organisation_id,
         branch_id,
         ro_number,
-        status,
+        lifecycle_status,
+        primary_repair_stage,
         customer_id,
         vehicle_id,
         created_by,

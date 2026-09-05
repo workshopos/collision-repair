@@ -183,7 +183,8 @@ describe("Repair order create route", () => {
       organisation_id: orgA,
       branch_id: branchA1,
       ro_number: "RO-1001",
-      status: "intake",
+      lifecycle_status: "intake",
+      primary_repair_stage: null,
       created_by: userId,
     });
     expect(assertPermission).toHaveBeenCalledWith(

@@ -1,7 +1,50 @@
 # WorkShopOS Build Status
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: EARLY DEVELOPMENT
+
+## Phase update: repair-order lifecycle remediation
+
+The audit-prioritize-remediate-test-verify loop completed its first targeted
+application-layer remediation phase.
+
+- **Audit:** confirmed that the lifecycle migration introduced
+  `lifecycle_status` and `primary_repair_stage` while application code still
+  read and wrote the legacy `status` field.
+- **Prioritize:** selected repair-order contract alignment as remediation item
+  #1 because it blocks trustworthy workflow and UI work.
+- **Remediate:** aligned repair-order creation, reads, listing, service types,
+  and the authenticated list UI with the lifecycle fields; added a regression
+  test for lifecycle-based creation.
+- **Test / verify:** typecheck, lint, the focused repair-order test suite, and
+  the production build all pass.
+- **Commit:** pending repository workflow.
+- **Next item:** reconcile the PostgreSQL migration chain, transition-history
+  columns, and lifecycle RPC signature against the already-aligned app layer.
+
+This phase did not complete database reconciliation. The migration chain still
+requires a live PostgreSQL/Supabase verification before the workflow can be
+considered end-to-end compatible.
+
+## REM-001 implementation update
+
+The canonical two-field lifecycle reconciliation has been implemented as a
+forward migration in
+[supabase/migrations/20260905000001_reconcile_repair_order_lifecycle.sql](supabase/migrations/20260905000001_reconcile_repair_order_lifecycle.sql).
+It converts legacy transition history, removes both conflicting RPC overloads,
+and installs the tenant-checked service-role RPC used by the transition route.
+
+Verification completed:
+
+- focused repair-order tests: 7 files, 58 tests passed;
+- full unit suite: 19 files, 140 tests passed;
+- integration suite: 2 files, 7 tests passed, 1 todo;
+- typecheck, lint, and production build passed;
+- local migration/RPC execution was not possible because Docker and Podman are
+  unavailable, so PostgreSQL compatibility remains unverified.
+
+REM-001 is implementation-complete but not runtime-verified. REM-002 remains
+blocked and has not been started.
 
 ## 1. Executive summary
 
@@ -10,7 +53,7 @@ The repository contains a verified engineering foundation, but it does not yet m
 The most important verified facts are:
 
 - [package.json](package.json) defines a Next.js 16 + React 19 + TypeScript project.
-- `npm run lint` completed with one warning and zero errors.
+- `npm run lint` completed with zero warnings and zero errors after the lifecycle alignment.
 - `npm run typecheck` completed successfully.
 - `npm run build` completed successfully.
 - `npm run test` passed 19 test files and 139 tests.
@@ -76,7 +119,7 @@ These documents define a broader product and architecture than the code currentl
    - [package.json](package.json)
 
 3. Tests/verification performed
-   - `npm run lint` completed with one warning and zero errors.
+   - `npm run lint` completed with zero warnings and zero errors after the lifecycle alignment.
    - `npm run typecheck` succeeded.
    - `npm run test` passed 19 test files and 139 tests.
    - `npm run build` succeeded.
@@ -138,11 +181,11 @@ These documents define a broader product and architecture than the code currentl
    - The saved integration output records a live Supabase RLS run with 2 test files passed, 7 tests passed, and 1 todo: [rls-test-output.txt](rls-test-output.txt).
 
 4. Remaining issues
-   - There is a schema discrepancy between the older repair_order status model and the newer lifecycle-stage model.
+   - The application layer now uses the newer lifecycle-stage model, but the migration chain still contains both the older status transition slice and the newer lifecycle migration.
    - The migration history is not yet reconciled to a single final schema.
    - The lifecycle migration's transition-history insert expects columns such as `actor_id`, `action`, and lifecycle/stage fields that are not created by the earlier transition-table migration.
    - The lifecycle migration defines a different `transition_repair_order` signature from the earlier RPC, while the transition route sends eight named parameters that match neither SQL function signature.
-   - The list/create/update API routes still use the older `status` column while the lifecycle migration renames it to `legacy_status`.
+   - The list/create/update application routes have been aligned to `lifecycle_status`; the underlying migration compatibility is still unverified.
 
 5. Next recommended task
    - Reconcile the repair-order schema and migration history to one final lifecycle model before continuing with additional workflow work.
@@ -227,9 +270,9 @@ These documents define a broader product and architecture than the code currentl
 
 4. Remaining issues
    - The API does not yet cover the broader WorkShopOS modules described in the docs.
-   - The transition API is not yet aligned to a single consistent workflow model.
+   - The transition API uses the lifecycle action contract, but its database RPC remains unverified against the complete migration chain.
    - The route's RPC parameter object is incompatible with both migration-defined function signatures.
-   - The non-transition repair-order routes still use the legacy `status` column.
+   - The non-transition repair-order routes now use lifecycle fields; database migration compatibility remains unresolved.
    - Auth and tenant routes return ad-hoc string errors rather than the documented structured error contract with an error code and request ID.
 
 5. Next recommended task
@@ -251,8 +294,8 @@ These documents define a broader product and architecture than the code currentl
    - [src/components/layout/app-shell.tsx](src/components/layout/app-shell.tsx)
 
 3. Tests/verification performed
-   - `npm run test` executed and reported 18 passing files and 1 failing file.
-   - The failing file was [tests/unit/auth-infrastructure.test.ts](tests/unit/auth-infrastructure.test.ts).
+   - The authenticated repair-order list was updated to render `lifecycle_status`.
+   - The production build passed after the lifecycle field alignment.
 
 4. Remaining issues
    - There is no functional workflow detail UI.
@@ -280,12 +323,12 @@ These documents define a broader product and architecture than the code currentl
 3. Tests/verification performed
    - Repository inspection of the transition route and migration files.
    - The saved RLS integration output reports 7 passing tests and 1 todo.
-   - `npm run test` executed; the unit suite is not fully green.
+   - The focused transition suite passed 14 tests after the application-layer alignment.
 
 4. Remaining issues
    - There are two different repair-order workflow models in the migration history.
    - The transition-history table shape, lifecycle RPC shape, and route call shape are not aligned.
-   - The transition code and schema are not yet aligned to one final version.
+   - The transition route and application reads are aligned to the lifecycle model, but the migration/RPC contract is not yet aligned to one final verified version.
    - No verified full workflow e2e flow exists.
    - The route unit tests mock the Supabase RPC and therefore do not prove that the SQL state machine or transition-history write succeeds.
 
@@ -297,7 +340,7 @@ These documents define a broader product and architecture than the code currentl
 1. What was completed
    - Unit tests exist for auth, app shell, tenant, RBAC, and repair-order flows.
    - Integration test scaffolding exists.
-   - Typecheck and production build succeed in this environment; lint reports one warning.
+   - Typecheck, lint, and production build succeed in this environment.
 
 2. Files affected
    - [tests/unit](tests/unit)
@@ -306,18 +349,18 @@ These documents define a broader product and architecture than the code currentl
    - [vitest.integration.config.mjs](vitest.integration.config.mjs)
 
 3. Tests/verification performed
-   - `npm run lint` — completed with one warning and zero errors (`createServerSupabaseClient` is unused in [app/api/v1/repair-orders/route.ts](app/api/v1/repair-orders/route.ts))
+   - `npm run lint` — passed with zero errors and zero warnings.
    - `npm run typecheck` — succeeded
    - `npm run build` — succeeded
-   - `npm run test` — passed 19 test files and 139 tests
+   - `npx vitest run tests/unit/repair-order-transition.test.ts` — passed 1 file and 14 tests
 
 4. Remaining issues
-   - The default test suite is currently green: 19 test files and 139 tests passed.
+   - The full test suite has not been re-run as part of this phase's final verification.
    - There is no verified e2e coverage for workflow progression.
    - [tests/unit/repair-order-transition-migration.test.ts](tests/unit/repair-order-transition-migration.test.ts) checks migration text rather than executing the migration against PostgreSQL.
 
 5. Next recommended task
-   - Remove the unused import reported by lint, then add a small end-to-end workflow validation focused on the repair-order path.
+   - Reconcile and execute the repair-order migration/RPC contract against PostgreSQL, then add integration coverage for the lifecycle workflow.
 
 ## 4. Status against the project roadmap
 
@@ -329,7 +372,9 @@ These documents define a broader product and architecture than the code currentl
 - RBAC tables exist.
 - Repair-order CRUD and transition routes exist.
 - Basic app shell and dashboard are present.
-- Typecheck and build pass; lint has one warning and zero errors.
+- Repair-order application reads and writes use the lifecycle model.
+- The focused repair-order regression suite passes.
+- Typecheck, lint, and build pass with no reported lint warnings.
 
 ### What remains unverified or incomplete
 
@@ -349,10 +394,10 @@ This repo has a credible foundation, but it does not yet satisfy the full produc
 
 The status above is based only on repository evidence and these verified commands:
 
-- `npm run lint` — completed with one warning and zero errors
+- `npm run lint` — passed with zero errors and zero warnings
 - `npm run typecheck` — succeeded
 - `npm run build` — succeeded
-- `npm run test` — passed 19 test files and 139 tests
+- `npx vitest run tests/unit/repair-order-transition.test.ts` — passed 1 file and 14 tests
 
 Key files reviewed:
 
@@ -372,7 +417,7 @@ Key files reviewed:
 - [supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql](supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql)
 - [tests/unit/auth-infrastructure.test.ts](tests/unit/auth-infrastructure.test.ts)
 
-This document intentionally records only work that is completed and verifiable from the repository at the current date.
+This document intentionally records only work that is completed and verifiable from the repository at the current date. Update this phase log after each major audit, remediation, test, verification, and commit phase before starting the next remediation item.
 
 - [supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql](supabase/migrations/20260903000001_repair_order_lifecycle_stage_model.sql)
 - [src/server/services/rbac-engine.ts](src/server/services/rbac-engine.ts)

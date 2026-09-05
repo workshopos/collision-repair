@@ -5,7 +5,8 @@ export type RepairOrderRow = {
   organisation_id: string;
   branch_id: string;
   ro_number: string;
-  status: string;
+  lifecycle_status: string;
+  primary_repair_stage: string | null;
   customer_id: string;
   vehicle_id: string;
   created_by: string;
@@ -34,7 +35,8 @@ export async function listRepairOrders(scope: {
       organisation_id,
       branch_id,
       ro_number,
-      status,
+      lifecycle_status,
+      primary_repair_stage,
       customer_id,
       vehicle_id,
       created_by,
