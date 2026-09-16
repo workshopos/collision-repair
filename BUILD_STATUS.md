@@ -426,3 +426,53 @@ This document intentionally records only work that is completed and verifiable f
 - [tests/unit/auth-infrastructure.test.ts](tests/unit/auth-infrastructure.test.ts)
 
 This document is intended to be updated whenever significant WorkShopOS development is completed, using verified repo evidence only.
+
+## 7. Session verification update — 2026-09-16
+
+### REM-001 cloud verification
+
+REM-001 cloud verification is **closed** as of 2026-09-16. Migration
+`20260905000001_reconcile_repair_order_lifecycle.sql` was pushed with
+`supabase db push`. The canonical seven-parameter `transition_repair_order`
+RPC is live, both stale five-parameter overloads were dropped, and the
+previous `PGRST202` error is eliminated.
+
+### Repository recovery
+
+Repository recovery restored 9 migrations, 24 tests, and 16 documentation
+files from `HEAD` after worktree deletion. The junk `index.html` containing a
+saved GitHub page was removed.
+
+### Unit verification
+
+The unit suite is now **140/140**, up from 65/140 immediately after restore.
+The verified repairs included structured error bodies, tenant-denial status
+changes from 400 to 403, `getUser` authentication mocks, and lifecycle test
+fixtures. Two real route bugs were found and fixed: malformed organisation ID
+requests now return `400 VALIDATION_ERROR` as required by API Contracts §7,
+instead of `403`.
+
+### Live integration verification
+
+Against the live cloud project, the integration suite recorded **7 passed and
+1 todo**, proving RLS isolation and RBAC behavior. `.env.test` was created and
+is gitignored.
+
+### Environment verification
+
+`SUPABASE_SERVICE_ROLE_KEY` was added to `.env.local`; `src/lib/auth/config.ts`
+reads the non-public variable name. The new-format `sb_publishable` and
+`sb_secret` keys are working.
+
+### Known gaps
+
+The following gaps are recorded and intentionally not fixed in this update:
+
+- No lifecycle-transition integration test exists. The REM-002 claim does not
+  match repository reality; this is deferred and should be covered through the
+  demo smoke flow.
+- The cross-branch integration test remains a `.todo` placeholder.
+- The unused `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` remains in `.env.local`;
+  remove it after the demo.
+- A CLI access token and database password were exposed in chat; rotate them
+  if that has not already been done.
