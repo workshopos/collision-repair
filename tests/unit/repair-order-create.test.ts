@@ -120,7 +120,11 @@ describe("Repair order create route", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -134,7 +138,12 @@ describe("Repair order create route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "Invalid repair order payload",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid repair order payload.",
+        request_id: expect.any(String),
+        details: expect.any(Object),
+      },
     });
     expect(resolveTenantContext).not.toHaveBeenCalled();
   });
@@ -152,7 +161,13 @@ describe("Repair order create route", () => {
     );
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "Forbidden" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have permission to perform this action.",
+        request_id: expect.any(String),
+      },
+    });
     expect(createAdminSupabaseClient).not.toHaveBeenCalled();
   });
 
@@ -185,6 +200,8 @@ describe("Repair order create route", () => {
       ro_number: "RO-1001",
       lifecycle_status: "intake",
       primary_repair_stage: null,
+      customer_id: null,
+      vehicle_id: null,
       created_by: userId,
     });
     expect(assertPermission).toHaveBeenCalledWith(
@@ -210,8 +227,12 @@ describe("Repair order create route", () => {
 
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      error:
-        "A repair order with this ro_number already exists in the organisation",
+      error: {
+        code: "DUPLICATE",
+        message:
+          "A repair order with this RO number already exists in the organisation.",
+        request_id: expect.any(String),
+      },
     });
     expect(query.insert).toHaveBeenCalledOnce();
   });
@@ -238,10 +259,13 @@ describe("Repair order create route", () => {
       }),
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     expect(await response.json()).toEqual({
-      error:
-        "The authenticated user is not a member of the requested organisation or branch.",
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have access to this workspace.",
+        request_id: expect.any(String),
+      },
     });
     expect(assertPermission).not.toHaveBeenCalled();
     expect(createAdminSupabaseClient).not.toHaveBeenCalled();

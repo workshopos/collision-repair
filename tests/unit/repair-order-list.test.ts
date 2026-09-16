@@ -208,7 +208,11 @@ describe("Repair order list route", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -219,7 +223,11 @@ describe("Repair order list route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "organisationId and branchId query parameters are required",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "organisationId and branchId query parameters are required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -235,7 +243,13 @@ describe("Repair order list route", () => {
     );
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "Forbidden" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have permission to perform this action.",
+        request_id: expect.any(String),
+      },
+    });
   });
 
   it("returns only rows from the requested organisation and branch", async () => {

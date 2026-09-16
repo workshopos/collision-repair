@@ -21,8 +21,13 @@ function mockTenantSession(
 ) {
   const client = {
     auth: {
-      getSession: vi.fn().mockResolvedValue({
-        data: { session },
+      getUser: vi.fn().mockResolvedValue({
+        data: {
+          user:
+            session && typeof session === "object" && "user" in session
+              ? session.user
+              : null,
+        },
         error: sessionError,
       }),
     },
@@ -49,7 +54,7 @@ function mockTenantSession(
 function mockSessionLookupFailure(error: Error) {
   const client = {
     auth: {
-      getSession: vi.fn().mockRejectedValue(error),
+      getUser: vi.fn().mockRejectedValue(error),
     },
   };
 
@@ -82,7 +87,11 @@ describe("Current organisation selection", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -98,10 +107,14 @@ describe("Current organisation selection", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
     expect(consoleError).toHaveBeenCalledWith(
-      "Error getting session:",
+      "Error getting authenticated user:",
       expect.any(Error),
     );
     consoleError.mockRestore();
@@ -117,7 +130,11 @@ describe("Current organisation selection", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "Organisation ID must be a valid UUID.",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Organisation ID must be a valid UUID.",
+        request_id: expect.any(String),
+      },
     });
     expect(from).not.toHaveBeenCalled();
   });
@@ -134,10 +151,14 @@ describe("Current organisation selection", () => {
       "11111111-1111-4111-8111-111111111111",
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     expect(await response.json()).toEqual({
-      error:
-        "The authenticated user is not a member of the requested organisation or branch.",
+      error: {
+        code: "FORBIDDEN",
+        message:
+          "The authenticated user is not a member of the requested organisation or branch.",
+        request_id: expect.any(String),
+      },
     });
   });
 

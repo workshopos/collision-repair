@@ -16,8 +16,13 @@ vi.mock("@/src/lib/auth/server", async () => {
 function mockSession(session: unknown, error: unknown = null) {
   const client = {
     auth: {
-      getSession: vi.fn().mockResolvedValue({
-        data: { session },
+      getUser: vi.fn().mockResolvedValue({
+        data: {
+          user:
+            session && typeof session === "object" && "user" in session
+              ? session.user
+              : null,
+        },
         error,
       }),
     },
@@ -31,7 +36,7 @@ function mockSession(session: unknown, error: unknown = null) {
 function mockSessionLookupFailure(error: Error) {
   const client = {
     auth: {
-      getSession: vi.fn().mockRejectedValue(error),
+      getUser: vi.fn().mockRejectedValue(error),
     },
   };
 
@@ -52,7 +57,11 @@ describe("Authenticated route boundary", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -63,7 +72,11 @@ describe("Authenticated route boundary", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -77,10 +90,14 @@ describe("Authenticated route boundary", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
     expect(consoleError).toHaveBeenCalledWith(
-      "Error getting session:",
+      "Error getting authenticated user:",
       expect.any(Error),
     );
     consoleError.mockRestore();

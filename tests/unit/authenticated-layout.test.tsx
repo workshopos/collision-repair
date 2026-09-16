@@ -3,16 +3,26 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import AuthenticatedLayout from "@/app/(authenticated)/layout";
 import { requireAuthenticatedUser } from "@/src/lib/auth/session";
 import { getEffectivePermissions } from "@/src/server/services/rbac-engine";
-import { readActiveTenantContext } from "@/src/server/services/active-tenant-context";
+import {
+  MissingTenantContextError,
+  readActiveTenantContext,
+} from "@/src/server/services/active-tenant-context";
 
 vi.mock("@/src/lib/auth/session", () => ({
   AuthenticationRequiredError: class AuthenticationRequiredError extends Error {},
   requireAuthenticatedUser: vi.fn(),
 }));
 
-vi.mock("@/src/server/services/active-tenant-context", () => ({
-  readActiveTenantContext: vi.fn(),
-}));
+vi.mock("@/src/server/services/active-tenant-context", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/src/server/services/active-tenant-context")
+  >("@/src/server/services/active-tenant-context");
+
+  return {
+    ...actual,
+    readActiveTenantContext: vi.fn(),
+  };
+});
 
 vi.mock("@/src/server/services/rbac-engine", () => ({
   getEffectivePermissions: vi.fn(),
@@ -29,7 +39,7 @@ describe("Authenticated layout", () => {
 
   it("renders an explicit context-required state when no active tenant exists", async () => {
     vi.mocked(readActiveTenantContext).mockRejectedValue(
-      new Error("Active tenant context is not set."),
+      new MissingTenantContextError(),
     );
 
     const layout = await AuthenticatedLayout({ children: null });

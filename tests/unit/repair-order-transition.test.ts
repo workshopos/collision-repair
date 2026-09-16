@@ -160,7 +160,13 @@ describe("Repair order transition route", () => {
     });
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: "Authentication required" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
+    });
   });
 
   it("creates repair orders using the lifecycle status contract instead of the legacy status field", async () => {
@@ -225,7 +231,13 @@ describe("Repair order transition route", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Invalid repair order ID" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid repair order ID.",
+        request_id: expect.any(String),
+      },
+    });
     expect(createServerSupabaseClient).not.toHaveBeenCalled();
   });
 
@@ -237,7 +249,13 @@ describe("Repair order transition route", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "Repair order not found" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "Repair order not found.",
+        request_id: expect.any(String),
+      },
+    });
     expect(createAdminSupabaseClient).not.toHaveBeenCalled();
   });
 
@@ -250,7 +268,12 @@ describe("Repair order transition route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "Invalid repair order transition payload",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid repair order transition payload.",
+        request_id: expect.any(String),
+        details: expect.any(Object),
+      },
     });
   });
 
@@ -268,7 +291,12 @@ describe("Repair order transition route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "Invalid repair order transition payload",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid repair order transition payload.",
+        request_id: expect.any(String),
+        details: expect.any(Object),
+      },
     });
   });
 
@@ -283,7 +311,13 @@ describe("Repair order transition route", () => {
     });
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "Forbidden" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have permission to perform this action.",
+        request_id: expect.any(String),
+      },
+    });
   });
 
   it("requires repair_order.cancel when transitioning via cancel", async () => {
@@ -300,7 +334,13 @@ describe("Repair order transition route", () => {
     });
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "Forbidden" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have permission to perform this action.",
+        request_id: expect.any(String),
+      },
+    });
   });
 
   it("requires repair_order.close when transitioning via complete", async () => {
@@ -321,7 +361,13 @@ describe("Repair order transition route", () => {
     });
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "Forbidden" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have permission to perform this action.",
+        request_id: expect.any(String),
+      },
+    });
   });
 
   it("accepts start_repair and calls the RPC with the new signature", async () => {
@@ -420,7 +466,11 @@ describe("Repair order transition route", () => {
 
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      error: "Invalid repair order transition",
+      error: {
+        code: "INVALID_STATE",
+        message: "Invalid repair order transition.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -439,7 +489,11 @@ describe("Repair order transition route", () => {
 
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      error: "Repair order tenant scope does not match",
+      error: {
+        code: "CONFLICT",
+        message: "Repair order tenant scope does not match.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -457,6 +511,12 @@ describe("Repair order transition route", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "Repair order not found" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "Repair order not found.",
+        request_id: expect.any(String),
+      },
+    });
   });
 });

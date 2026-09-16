@@ -126,7 +126,11 @@ describe("Repair order read route", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -144,7 +148,11 @@ describe("Repair order read route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "organisationId and branchId query parameters are required",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "organisationId and branchId query parameters are required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -221,7 +229,13 @@ describe("Repair order read route", () => {
     );
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "Forbidden" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have permission to perform this action.",
+        request_id: expect.any(String),
+      },
+    });
   });
 
   it("rejects a legitimate Org A member attempting to fetch a row that exists in Org B", async () => {
@@ -265,7 +279,13 @@ describe("Repair order read route", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "Repair order not found" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "Repair order not found.",
+        request_id: expect.any(String),
+      },
+    });
     expect(query.eq).toHaveBeenCalledWith("id", repairOrderIdInOrgB);
     expect(query.eq).toHaveBeenCalledWith("organisation_id", orgA);
     expect(query.eq).toHaveBeenCalledWith("branch_id", branchA1);
@@ -302,7 +322,13 @@ describe("Repair order read route", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "Repair order not found" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "Repair order not found.",
+        request_id: expect.any(String),
+      },
+    });
     expect(query.eq).toHaveBeenCalledWith("id", repairOrderId);
     expect(query.eq).toHaveBeenCalledWith("organisation_id", orgA);
     expect(query.eq).toHaveBeenCalledWith("branch_id", branchA1);
@@ -338,7 +364,13 @@ describe("Repair order read route", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "Repair order not found" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "Repair order not found.",
+        request_id: expect.any(String),
+      },
+    });
     expect(query.eq).toHaveBeenCalledWith("id", repairOrderId);
     expect(query.eq).toHaveBeenCalledWith("organisation_id", orgA);
     expect(query.eq).toHaveBeenCalledWith("branch_id", branchA1);
@@ -367,7 +399,11 @@ describe("Repair order read route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "Invalid repair order ID",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid repair order ID.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -412,7 +448,13 @@ describe("Repair order read route", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "Repair order not found" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "Repair order not found.",
+        request_id: expect.any(String),
+      },
+    });
     expect(query.is).toHaveBeenCalledWith("archived_at", null);
   });
 });

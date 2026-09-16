@@ -36,8 +36,13 @@ vi.mock("@/src/server/services/rbac-engine", () => ({
 function mockSession(session: unknown, error: unknown = null) {
   const client = {
     auth: {
-      getSession: vi.fn().mockResolvedValue({
-        data: { session },
+      getUser: vi.fn().mockResolvedValue({
+        data: {
+          user:
+            session && typeof session === "object" && "user" in session
+              ? session.user
+              : null,
+        },
         error,
       }),
     },
@@ -51,7 +56,7 @@ function mockSession(session: unknown, error: unknown = null) {
 function mockSessionLookupFailure(error: Error) {
   const client = {
     auth: {
-      getSession: vi.fn().mockRejectedValue(error),
+      getUser: vi.fn().mockRejectedValue(error),
     },
   };
 
@@ -105,7 +110,7 @@ describe("Unauthenticated page redirects", () => {
     );
     expect(redirect).toHaveBeenCalledWith("/login");
     expect(consoleError).toHaveBeenCalledWith(
-      "Error getting session:",
+      "Error getting authenticated user:",
       expect.any(Error),
     );
     consoleError.mockRestore();

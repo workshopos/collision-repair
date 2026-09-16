@@ -161,7 +161,11 @@ describe("Repair order update route", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "Authentication required",
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Authentication required.",
+        request_id: expect.any(String),
+      },
     });
   });
 
@@ -173,7 +177,13 @@ describe("Repair order update route", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "Repair order not found" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "Repair order not found.",
+        request_id: expect.any(String),
+      },
+    });
     expect(resolveTenantContext).not.toHaveBeenCalled();
     expect(createAdminSupabaseClient).not.toHaveBeenCalled();
   });
@@ -187,7 +197,13 @@ describe("Repair order update route", () => {
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Invalid repair order ID" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid repair order ID.",
+        request_id: expect.any(String),
+      },
+    });
     expect(createServerSupabaseClient).not.toHaveBeenCalled();
   });
 
@@ -203,7 +219,12 @@ describe("Repair order update route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "Invalid repair order update payload",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid repair order update payload.",
+        request_id: expect.any(String),
+        details: expect.any(Object),
+      },
     });
     expect(createServerSupabaseClient).not.toHaveBeenCalled();
   });
@@ -215,7 +236,12 @@ describe("Repair order update route", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "Invalid repair order update payload",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid repair order update payload.",
+        request_id: expect.any(String),
+        details: expect.any(Object),
+      },
     });
   });
 
@@ -235,7 +261,7 @@ describe("Repair order update route", () => {
       params: Promise.resolve({ id: repairOrderId }),
     });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     expect(resolveTenantContext).toHaveBeenCalledWith({
       organisationId: orgA,
       branchId: branchA1,
@@ -255,7 +281,13 @@ describe("Repair order update route", () => {
     });
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "Forbidden" });
+    expect(await response.json()).toEqual({
+      error: {
+        code: "FORBIDDEN",
+        message: "You do not have permission to perform this action.",
+        request_id: expect.any(String),
+      },
+    });
     expect(createAdminSupabaseClient).not.toHaveBeenCalled();
   });
 
@@ -322,8 +354,12 @@ describe("Repair order update route", () => {
 
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      error:
-        "A repair order with this ro_number already exists in the organisation",
+      error: {
+        code: "DUPLICATE",
+        message:
+          "A repair order with this RO number already exists in the organisation.",
+        request_id: expect.any(String),
+      },
     });
     expect(query.update).toHaveBeenCalledWith({ ro_number: "RO-2001" });
   });
@@ -352,7 +388,7 @@ describe("Repair order update route", () => {
       { params: Promise.resolve({ id: repairOrderId }) },
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     expect(resolveTenantContext).toHaveBeenCalledWith({
       organisationId: orgB,
       branchId: branchB1,
