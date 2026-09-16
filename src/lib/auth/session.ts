@@ -37,8 +37,18 @@ export async function getCurrentSession() {
  * Returns null if user is not authenticated
  */
 export async function getCurrentUser() {
-  const session = await getCurrentSession();
-  return session?.user ?? null;
+  const supabase = await createServerSupabaseClient();
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    return user;
+  } catch (error) {
+    console.error("Error getting authenticated user:", error);
+    return null;
+  }
 }
 
 /**

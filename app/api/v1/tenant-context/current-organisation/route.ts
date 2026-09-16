@@ -4,6 +4,7 @@ import {
   resolveTenantContext,
 } from "@/src/server/services/tenant-context";
 import { AuthenticationRequiredError } from "@/src/lib/auth";
+import { apiError } from "@/src/lib/api-response";
 
 export async function POST(request: Request) {
   try {
@@ -25,14 +26,19 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
+      return apiError("UNAUTHENTICATED", "Authentication required.", 401);
+    }
+
+    if (
+      error instanceof Error &&
+      (error.message.includes("must be a valid UUID") ||
+        error.message.includes("required for tenant resolution"))
+    ) {
+      return apiError("VALIDATION_ERROR", error.message, 400);
     }
 
     const message =
       error instanceof Error ? error.message : "Tenant selection failed";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError("FORBIDDEN", message, 403);
   }
 }

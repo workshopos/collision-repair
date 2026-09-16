@@ -7,6 +7,7 @@
 export { publicEnv, serverEnv, validateEnvironment } from "./config";
 export { getSupabaseClient } from "./client";
 export {
+  createClient,
   createServerSupabaseClient,
   createAdminSupabaseClient,
 } from "./server";

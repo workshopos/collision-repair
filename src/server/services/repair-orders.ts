@@ -60,3 +60,39 @@ export async function listRepairOrders(scope: {
     meta: { page, page_size: pageSize, total: count ?? 0 },
   };
 }
+
+export async function getRepairOrder(
+  id: string,
+  scope: { organisationId: string; branchId: string },
+) {
+  const client = await createServerSupabaseClient();
+  const { data, error } = await client
+    .from("repair_orders")
+    .select(
+      `
+      id, organisation_id, branch_id, ro_number, lifecycle_status,
+      primary_repair_stage, customer_id, vehicle_id, created_by,
+      created_at, updated_at, archived_at
+      `,
+    )
+    .eq("id", id)
+    .eq("organisation_id", scope.organisationId)
+    .eq("branch_id", scope.branchId)
+    .is("archived_at", null)
+    .maybeSingle();
+  if (error) throw error;
+  return data as RepairOrderRow | null;
+}
+
+export async function listRepairOrderTransitions(repairOrderId: string) {
+  const client = await createServerSupabaseClient();
+  const { data, error } = await client
+    .from("repair_order_transitions")
+    .select(
+      "id, repair_order_id, actor_id, action, from_lifecycle_status, from_primary_stage, to_lifecycle_status, to_primary_stage, reason, transitioned_at",
+    )
+    .eq("repair_order_id", repairOrderId)
+    .order("transitioned_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { createServerSupabaseClient } from "@/src/lib/auth/server";
 import {
   assertTenantMembership,
   resolveTenantContext,
@@ -6,6 +7,13 @@ import {
 } from "@/src/server/services/tenant-context";
 
 export const ACTIVE_TENANT_CONTEXT_COOKIE = "workshopos_active_tenant";
+
+export class MissingTenantContextError extends Error {
+  constructor() {
+    super("Active tenant context is not set.");
+    this.name = "MissingTenantContextError";
+  }
+}
 
 type ActiveTenantCookieValue = {
   organisationId: string;
@@ -60,7 +68,39 @@ export async function readActiveTenantContext(): Promise<TenantContext> {
   const cookie = cookieStore.get(ACTIVE_TENANT_CONTEXT_COOKIE);
 
   if (!cookie) {
-    throw new Error("Active tenant context is not set.");
+    const client = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await client.auth.getUser();
+
+    if (!user) {
+      throw new MissingTenantContextError();
+    }
+
+    const { data: memberships, error } = await client
+      .from("branch_memberships")
+      .select("organisation_id, branch_id")
+      .eq("profile_id", user.id)
+      .eq("is_active", true);
+
+    if (error) throw error;
+
+    if (memberships?.length === 1) {
+      const scope = await assertTenantMembership({
+        organisationId: memberships[0].organisation_id,
+        branchId: memberships[0].branch_id,
+      });
+
+      try {
+        await setActiveTenantContextCookie(scope);
+      } catch {
+        // Server Components may not be able to write response cookies.
+      }
+
+      return scope;
+    }
+
+    throw new MissingTenantContextError();
   }
 
   const value = decodeCookieValue(cookie.value);

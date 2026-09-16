@@ -7,6 +7,8 @@
 import { createServerSupabaseClient } from "@/src/lib/auth";
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { apiError, apiServerError } from "@/src/lib/api-response";
+import { setActiveTenantContextCookie } from "@/src/server/services/active-tenant-context";
 
 const LoginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -20,9 +22,11 @@ export async function POST(request: Request) {
     // Validate input
     const validation = LoginSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: validation.error.flatten() },
-        { status: 400 },
+      return apiError(
+        "VALIDATION_ERROR",
+        "Invalid login details.",
+        400,
+        validation.error.flatten(),
       );
     }
 
@@ -37,17 +41,37 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      return NextResponse.json(
-        { error: "Authentication failed" },
-        { status: 401 },
-      );
+      console.error("Supabase login failed:", {
+        code: error.code,
+        message: error.message,
+        status: error.status,
+      });
+
+      const message =
+        error.code === "email_not_confirmed"
+          ? "Please confirm your email before signing in."
+          : "Invalid email or password.";
+
+      return apiError("UNAUTHENTICATED", message, 401);
     }
 
     if (!data.session) {
-      return NextResponse.json(
-        { error: "No session created" },
-        { status: 500 },
-      );
+      return apiServerError("No session was created.");
+    }
+
+    const { data: branchMemberships, error: membershipError } = await supabase
+      .from("branch_memberships")
+      .select("organisation_id, branch_id")
+      .eq("profile_id", data.user.id)
+      .eq("is_active", true);
+
+    if (membershipError) {
+      console.error("Login tenant context lookup failed:", membershipError);
+    } else if (branchMemberships?.length === 1) {
+      await setActiveTenantContextCookie({
+        organisationId: branchMemberships[0].organisation_id,
+        branchId: branchMemberships[0].branch_id,
+      });
     }
 
     return NextResponse.json(
@@ -62,9 +86,6 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("Login error:", error);
-    return NextResponse.json(
-      { error: "An error occurred during login" },
-      { status: 500 },
-    );
+    return apiServerError("An error occurred during login.");
   }
 }

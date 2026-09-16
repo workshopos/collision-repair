@@ -14,28 +14,34 @@ import { publicEnv, serverEnv } from "./config";
  * Create a Supabase server client for route handlers
  * This client can refresh sessions and access protected data
  */
-export async function createServerSupabaseClient() {
+export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // The `setAll` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
-        }
+  return createServerClient(
+    publicEnv.supabaseUrl,
+    publicEnv.supabasePublishableKey,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
       },
     },
-  });
+  );
 }
+
+export const createServerSupabaseClient = createClient;
 
 /**
  * Create a Supabase admin client for server-side operations

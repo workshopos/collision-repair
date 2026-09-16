@@ -1,6 +1,8 @@
 import Link from "next/link";
 import {
   ClipboardList,
+  CarFront,
+  ContactRound,
   LayoutDashboard,
   Settings2,
   Wrench,
@@ -17,6 +19,8 @@ type NavigationItem = {
 
 const navigationItems: NavigationItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Customers", href: "/customers", icon: ContactRound },
+  { label: "Vehicles", href: "/vehicles", icon: CarFront },
   {
     label: "Repair Orders",
     href: "/repair-orders",

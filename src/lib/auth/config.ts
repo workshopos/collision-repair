@@ -12,6 +12,10 @@ const isProduction = process.env.NODE_ENV === "production";
  */
 export const publicEnv = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  supabasePublishableKey:
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "",
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
 };
 
@@ -33,8 +37,10 @@ export function validateEnvironment(): void {
     errors.push("NEXT_PUBLIC_SUPABASE_URL is not set");
   }
 
-  if (!publicEnv.supabaseAnonKey) {
-    errors.push("NEXT_PUBLIC_SUPABASE_ANON_KEY is not set");
+  if (!publicEnv.supabasePublishableKey) {
+    errors.push(
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set",
+    );
   }
 
   if (isProduction && !serverEnv.supabaseServiceRoleKey) {

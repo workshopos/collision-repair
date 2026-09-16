@@ -3,6 +3,7 @@ import {
   AuthenticationRequiredError,
   requireAuthenticatedUser,
 } from "@/src/lib/auth/session";
+import { apiError } from "@/src/lib/api-response";
 
 export async function POST() {
   try {
@@ -11,16 +12,10 @@ export async function POST() {
     return NextResponse.json({ message: "Authenticated" }, { status: 200 });
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
+      return apiError("UNAUTHENTICATED", "Authentication required.", 401);
     }
 
     console.error("Protected route authentication error:", error);
-    return NextResponse.json(
-      { error: "Authentication check failed" },
-      { status: 500 },
-    );
+    return apiError("INTERNAL_ERROR", "Authentication check failed.", 500);
   }
 }

@@ -1,5 +1,6 @@
 import { readActiveTenantContext } from "@/src/server/services/active-tenant-context";
 import { listRepairOrders } from "@/src/server/services/repair-orders";
+import Link from "next/link";
 
 export default async function RepairOrdersPage() {
   const tenantContext = await readActiveTenantContext();
@@ -10,7 +11,15 @@ export default async function RepairOrdersPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="font-serif text-2xl">Repair Orders</h1>
+      <div className="flex items-end justify-between gap-4">
+        <h1 className="font-serif text-2xl">Repair Orders</h1>
+        <Link
+          href="/repair-orders/new"
+          className="bg-[#202c2b] px-4 py-2 text-sm font-medium text-white"
+        >
+          New repair order
+        </Link>
+      </div>
 
       {data.length === 0 ? (
         <p className="mt-6 text-sm text-neutral-500">
@@ -28,7 +37,14 @@ export default async function RepairOrdersPage() {
           <tbody>
             {data.map((ro) => (
               <tr key={ro.id} className="border-b border-neutral-100">
-                <td className="py-2">{ro.ro_number}</td>
+                <td className="py-2">
+                  <Link
+                    className="font-medium underline-offset-4 hover:underline"
+                    href={`/repair-orders/${ro.id}`}
+                  >
+                    {ro.ro_number}
+                  </Link>
+                </td>
                 <td className="py-2">{ro.lifecycle_status}</td>
                 <td className="py-2">
                   {new Date(ro.created_at).toLocaleDateString()}

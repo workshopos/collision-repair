@@ -13,6 +13,7 @@ import {
   resolveTenantContext,
 } from "@/src/server/services/tenant-context";
 import { z } from "zod";
+import { apiError, apiServerError } from "@/src/lib/api-response";
 
 const repairOrderIdSchema = z.string().uuid();
 
@@ -69,10 +70,7 @@ export async function POST(
     const parsedId = repairOrderIdSchema.safeParse(id);
 
     if (!parsedId.success) {
-      return NextResponse.json(
-        { error: "Invalid repair order ID" },
-        { status: 400 },
-      );
+      return apiError("VALIDATION_ERROR", "Invalid repair order ID.", 400);
     }
 
     const body = transitionRepairOrderSchema.parse(await request.json());
@@ -89,16 +87,14 @@ export async function POST(
     }
 
     if (!existingRow) {
-      return NextResponse.json(
-        { error: "Repair order not found" },
-        { status: 404 },
-      );
+      return apiError("NOT_FOUND", "Repair order not found.", 404);
     }
 
     if (existingRow.archived_at) {
-      return NextResponse.json(
-        { error: "Repair order is archived and cannot be transitioned" },
-        { status: 409 },
+      return apiError(
+        "INVALID_STATE",
+        "Repair order is archived and cannot be transitioned.",
+        409,
       );
     }
 
@@ -140,10 +136,7 @@ export async function POST(
       const message = String(error.message ?? "");
 
       if (error.code === "P0002" || message.includes("not found")) {
-        return NextResponse.json(
-          { error: "Repair order not found" },
-          { status: 404 },
-        );
+        return apiError("NOT_FOUND", "Repair order not found.", 404);
       }
 
       if (
@@ -158,23 +151,26 @@ export async function POST(
           message.includes("requires a non-empty p_reason") ||
           message.includes("requires p_target_stage"))
       ) {
-        return NextResponse.json(
-          { error: "Invalid repair order transition" },
-          { status: 409 },
+        return apiError(
+          "INVALID_STATE",
+          "Invalid repair order transition.",
+          409,
         );
       }
 
       if (message.includes("tenant scope does not match")) {
-        return NextResponse.json(
-          { error: "Repair order tenant scope does not match" },
-          { status: 409 },
+        return apiError(
+          "CONFLICT",
+          "Repair order tenant scope does not match.",
+          409,
         );
       }
 
       if (message.includes("archived")) {
-        return NextResponse.json(
-          { error: "Repair order is archived and cannot be transitioned" },
-          { status: 409 },
+        return apiError(
+          "INVALID_STATE",
+          "Repair order is archived and cannot be transitioned.",
+          409,
         );
       }
 
@@ -184,36 +180,40 @@ export async function POST(
     return NextResponse.json({ data }, { status: 200 });
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
+      return apiError("UNAUTHENTICATED", "Authentication required.", 401);
     }
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid repair order transition payload" },
-        { status: 400 },
+      return apiError(
+        "VALIDATION_ERROR",
+        "Invalid repair order transition payload.",
+        400,
+        error.flatten(),
       );
     }
 
     if (error instanceof Error) {
       if (error.message.includes("lacks permission")) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        return apiError(
+          "FORBIDDEN",
+          "You do not have permission to perform this action.",
+          403,
+        );
       }
 
       if (
         error.message.includes("not a member") ||
         error.message.includes("Invalid tenant scope")
       ) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return apiError(
+          "FORBIDDEN",
+          "You do not have access to this workspace.",
+          403,
+        );
       }
     }
 
     console.error("Repair order transition error:", error);
-    return NextResponse.json(
-      { error: "Repair order transition failed" },
-      { status: 500 },
-    );
+    return apiServerError("Unable to transition repair order.");
   }
 }

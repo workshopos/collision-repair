@@ -24,7 +24,7 @@ export function LoginForm() {
         const data = await response.json();
 
         if (!response.ok) {
-          return data.error || "Login failed";
+          return data.error?.message || "Login failed";
         }
 
         router.push("/");

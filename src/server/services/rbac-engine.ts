@@ -2,6 +2,16 @@ import { createServerSupabaseClient } from "@/src/lib/auth/server";
 import { createAdminSupabaseClient } from "@/src/lib/auth/server";
 import { enforceTenantRequestBoundary } from "@/src/server/services/tenant-context";
 
+export class RbacAuthorizationError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode: 403 | 404,
+  ) {
+    super(message);
+    this.name = "RbacAuthorizationError";
+  }
+}
+
 /**
  * Role assignment with full role and permission data
  */
@@ -149,7 +159,6 @@ export async function getRoleAssignments(
         permissions: rolePermissionMap.get(ur.role_id) || new Set(),
       }));
     },
-    async () => true,
   );
 }
 
@@ -190,7 +199,6 @@ export async function getEffectivePermissions(
         roleAssignments,
       };
     },
-    async () => true,
   );
 }
 
@@ -245,7 +253,6 @@ export async function assertPermission(
         );
       }
     },
-    async () => true,
   );
 }
 
@@ -256,50 +263,61 @@ export async function assertPermission(
  * @param targetUserId - profile_id receiving the role
  * @param roleId - role_id to assign
  * @param organisationId - organisation_id for the assignment
- * Note: branchId scoping reserved for future enhancement when implementing
- * "User cannot grant permissions they themselves do not possess" rule
+ * @param branchId - optional branch scope for the assignment
  */
 export async function canAssignRole(
   actorId: string,
   targetUserId: string,
   roleId: string,
   organisationId: string,
+  branchId?: string | null,
 ): Promise<boolean> {
-  // Actor must have user.assign_role permission
-  const actorHasPermission = await hasPermission(
-    actorId,
-    "user.assign_role",
-    organisationId,
-  );
-  if (!actorHasPermission) {
-    return false;
+  try {
+    await authorizeRoleMutation({
+      actorId,
+      targetUserId,
+      roleId,
+      organisationId,
+      branchId,
+      requirePermissionContainment: true,
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof RbacAuthorizationError) {
+      return false;
+    }
+    throw error;
   }
-
-  // Additional rule: User cannot grant permissions they themselves do not possess
-  // For now, this is a placeholder for future enhancement
-  // In MVP: if actor has user.assign_role, they can assign any role in their organisation
-
-  return true;
 }
 
 /**
  * Assigns a role to a user
- * Does NOT check permissions (caller must use canAssignRole first)
+ * Independently checks actor authorization before using the service-role client.
  * Idempotent: if assignment already exists and is active, returns success
  */
 export async function assignRole(
-  userId: string,
+  actorId: string,
+  targetUserId: string,
   roleId: string,
   organisationId: string,
   branchId?: string | null,
 ): Promise<{ id: string; created: boolean }> {
+  await authorizeRoleMutation({
+    actorId,
+    targetUserId,
+    roleId,
+    organisationId,
+    branchId,
+    requirePermissionContainment: true,
+  });
+
   const client = await createAdminSupabaseClient();
 
   // Check if assignment already exists
   const { data: existing } = await client
     .from("user_roles")
     .select("id, is_active")
-    .eq("profile_id", userId)
+    .eq("profile_id", targetUserId)
     .eq("role_id", roleId)
     .eq("organisation_id", organisationId)
     .is("branch_id", branchId ?? null)
@@ -322,7 +340,7 @@ export async function assignRole(
   const { data, error } = await client
     .from("user_roles")
     .insert({
-      profile_id: userId,
+      profile_id: targetUserId,
       role_id: roleId,
       organisation_id: organisationId,
       branch_id: branchId ?? null,
@@ -340,22 +358,234 @@ export async function assignRole(
  * Does not delete the record (preserves audit trail)
  */
 export async function removeRole(
-  userId: string,
+  actorId: string,
+  targetUserId: string,
   roleId: string,
   organisationId: string,
   branchId?: string | null,
 ): Promise<void> {
+  await authorizeRoleMutation({
+    actorId,
+    targetUserId,
+    roleId,
+    organisationId,
+    branchId,
+    requirePermissionContainment: false,
+  });
+
   const client = await createAdminSupabaseClient();
 
   const { error } = await client
     .from("user_roles")
     .update({ is_active: false })
-    .eq("profile_id", userId)
+    .eq("profile_id", targetUserId)
     .eq("role_id", roleId)
     .eq("organisation_id", organisationId)
     .is("branch_id", branchId ?? null);
 
   if (error) throw error;
+}
+
+type RoleMutationInput = {
+  actorId: string;
+  targetUserId: string;
+  roleId: string;
+  organisationId: string;
+  branchId?: string | null;
+  requirePermissionContainment: boolean;
+};
+
+async function getPermissionKeys(
+  client: Awaited<ReturnType<typeof createAdminSupabaseClient>>,
+  userId: string,
+  organisationId: string,
+  branchId: string | null,
+): Promise<Set<string>> {
+  let query = client
+    .from("user_roles")
+    .select("role_id")
+    .eq("profile_id", userId)
+    .eq("organisation_id", organisationId)
+    .eq("is_active", true);
+
+  if (branchId) {
+    query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
+  } else {
+    query = query.is("branch_id", null);
+  }
+
+  const { data: assignments, error: assignmentError } = await query;
+  if (assignmentError) throw assignmentError;
+
+  const roleIds = (assignments ?? []).map((row) => row.role_id);
+  if (roleIds.length === 0) return new Set();
+
+  const { data, error } = await client
+    .from("role_permissions")
+    .select("permissions!inner(key)")
+    .in("role_id", roleIds);
+  if (error) throw error;
+
+  return new Set(
+    (data ?? [])
+      .map((row) => {
+        const permissions = row.permissions as unknown as
+          | { key: string }
+          | { key: string }[]
+          | null;
+        return Array.isArray(permissions)
+          ? permissions[0]?.key
+          : permissions?.key;
+      })
+      .filter((key): key is string => Boolean(key)),
+  );
+}
+
+async function authorizeRoleMutation(input: RoleMutationInput): Promise<void> {
+  const client = await createAdminSupabaseClient();
+  const branchId = input.branchId ?? null;
+
+  const { data: actorOrganisationMembership, error: actorOrganisationError } =
+    await client
+      .from("organisation_memberships")
+      .select("profile_id, organisation_id, is_active")
+      .eq("profile_id", input.actorId)
+      .eq("organisation_id", input.organisationId)
+      .eq("is_active", true)
+      .maybeSingle();
+  if (actorOrganisationError) throw actorOrganisationError;
+  if (!actorOrganisationMembership) {
+    throw new RbacAuthorizationError(
+      "Actor is not an active member of the target organisation.",
+      403,
+    );
+  }
+
+  if (branchId) {
+    const { data: branch, error: branchError } = await client
+      .from("branches")
+      .select("id, organisation_id")
+      .eq("id", branchId)
+      .eq("organisation_id", input.organisationId)
+      .maybeSingle();
+    if (branchError) throw branchError;
+    if (!branch) {
+      throw new RbacAuthorizationError(
+        "Target role assignment scope was not found.",
+        404,
+      );
+    }
+
+    const { data: actorBranchMembership, error: actorBranchError } =
+      await client
+        .from("branch_memberships")
+        .select("profile_id, organisation_id, branch_id, is_active")
+        .eq("profile_id", input.actorId)
+        .eq("organisation_id", input.organisationId)
+        .eq("branch_id", branchId)
+        .eq("is_active", true)
+        .maybeSingle();
+    if (actorBranchError) throw actorBranchError;
+    if (!actorBranchMembership) {
+      throw new RbacAuthorizationError(
+        "Actor is not an active member of the target branch.",
+        403,
+      );
+    }
+  }
+
+  const { data: targetOrganisationMembership, error: targetOrganisationError } =
+    await client
+      .from("organisation_memberships")
+      .select("profile_id, organisation_id, is_active")
+      .eq("profile_id", input.targetUserId)
+      .eq("organisation_id", input.organisationId)
+      .eq("is_active", true)
+      .maybeSingle();
+  if (targetOrganisationError) throw targetOrganisationError;
+  if (!targetOrganisationMembership) {
+    throw new RbacAuthorizationError(
+      "Target user was not found in the target organisation.",
+      404,
+    );
+  }
+
+  if (branchId) {
+    const { data: targetBranchMembership, error: targetBranchError } =
+      await client
+        .from("branch_memberships")
+        .select("profile_id, organisation_id, branch_id, is_active")
+        .eq("profile_id", input.targetUserId)
+        .eq("organisation_id", input.organisationId)
+        .eq("branch_id", branchId)
+        .eq("is_active", true)
+        .maybeSingle();
+    if (targetBranchError) throw targetBranchError;
+    if (!targetBranchMembership) {
+      throw new RbacAuthorizationError(
+        "Target user was not found in the target branch.",
+        404,
+      );
+    }
+  }
+
+  const { data: role, error: roleError } = await client
+    .from("roles")
+    .select("id, organisation_id, is_system_role, slug")
+    .eq("id", input.roleId)
+    .eq("organisation_id", input.organisationId)
+    .maybeSingle();
+  if (roleError) throw roleError;
+  if (
+    !role ||
+    role.is_system_role ||
+    role.slug === "system_admin" ||
+    role.slug === "group_admin"
+  ) {
+    throw new RbacAuthorizationError(
+      "Role was not found in the target organisation.",
+      404,
+    );
+  }
+
+  const actorPermissions = await getPermissionKeys(
+    client,
+    input.actorId,
+    input.organisationId,
+    branchId,
+  );
+  if (!actorPermissions.has("user.assign_role")) {
+    throw new RbacAuthorizationError(
+      "Actor lacks permission 'user.assign_role'.",
+      403,
+    );
+  }
+
+  if (!input.requirePermissionContainment) return;
+
+  const { data: rolePermissions, error: rolePermissionsError } = await client
+    .from("role_permissions")
+    .select("permissions!inner(key)")
+    .eq("role_id", role.id);
+  if (rolePermissionsError) throw rolePermissionsError;
+
+  const missingPermission = (rolePermissions ?? [])
+    .map((row) => {
+      const permissions = row.permissions as unknown as
+        | { key: string }
+        | { key: string }[]
+        | null;
+      return Array.isArray(permissions)
+        ? permissions[0]?.key
+        : permissions?.key;
+    })
+    .find((permission) => permission && !actorPermissions.has(permission));
+  if (missingPermission) {
+    throw new RbacAuthorizationError(
+      `Actor cannot grant permission '${missingPermission}'.`,
+      403,
+    );
+  }
 }
 
 /**
